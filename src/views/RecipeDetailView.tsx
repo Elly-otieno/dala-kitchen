@@ -611,7 +611,7 @@ export const RecipeDetailView: React.FC<RecipeDetailViewProps> = ({
                   Nutritional Breakdown In Progress
                 </p>
                 <p className="text-[11px] text-dala-text-light leading-relaxed">
-                  Laboratory macro &amp; micronutrient analysis for this recipe is currently being calculated and will be available soon.
+                  Will be available soon.
                 </p>
               </div>
             </motion.div>
