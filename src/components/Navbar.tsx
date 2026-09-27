@@ -35,7 +35,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   const fbUrl = siteSettings?.facebookUrl || 'https://www.facebook.com/share/1BBMxx2UTw/';
   const igUrl = siteSettings?.instagramUrl || 'https://www.instagram.com/dala.kitchen?utm_source=qr&igsh=M21jcnQzbDZkYzJx';
-  const ytUrl = siteSettings?.youtubeUrl || 'https://youtube.com';
+  const ytUrl = siteSettings?.youtubeUrl || 'https://www.youtube.com/@quinn_Achieng';
   const pinUrl = siteSettings?.pinterestUrl || 'https://pinterest.com';
   const ttUrl = siteSettings?.tiktokUrl || 'https://tiktok.com';
 

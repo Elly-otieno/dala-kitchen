@@ -36,7 +36,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
           transition={{ duration: 0.8, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
           className="max-w-xl"
         >
-          <motion.div
+          {/* <motion.div
             initial={{ opacity: 0, x: -16 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.6, delay: 0.3, ease: 'easeOut' }}
@@ -44,7 +44,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
           >
             <span className="w-2 h-2 rounded-full bg-dala-green animate-pulse"></span>
             From Scratch &amp; Tested with Love
-          </motion.div>
+          </motion.div> */}
 
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-serif font-bold text-dala-text leading-[1.15] mb-6 tracking-tight">
             The Science of Scratch,
