@@ -1,0 +1,51 @@
+@import "tailwindcss";
+
+@theme {
+  --color-dala-cream: #fcf9f8;
+  --color-dala-green: #3d4a31;
+  --color-dala-green-dark: #27331c;
+  --color-dala-gold: #D49E37;
+  --color-dala-text: #1b1c1c;
+  --color-dala-text-light: #454840;
+
+  --font-serif: "Playfair Display", Georgia, serif;
+  --font-cinzel: "Cinzel", serif;
+  --font-sans: "Inter", "Montserrat", sans-serif;
+  --font-signature: "Great Vibes", "La Belle Aurore", cursive;
+}
+
+.font-serif {
+  font-family: 'Playfair Display', Georgia, serif;
+}
+
+.font-signature {
+  font-family: 'Great Vibes', 'La Belle Aurore', cursive;
+}
+
+.font-cinzel {
+  font-family: 'Cinzel', serif;
+}
+
+.badge-tag {
+  background-color: rgba(61, 74, 49, 0.9);
+  color: white;
+}
+
+/* Hide scrollbar for category horizontal scroll */
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+@media print {
+  body {
+    background-color: white !important;
+    color: black !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+}
