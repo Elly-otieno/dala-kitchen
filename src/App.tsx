@@ -41,19 +41,27 @@ import {
   fetchAnalyticsFromSupabase,
   clearAnalyticsFromSupabase,
 } from './lib/supabaseSync';
+import { supabase } from './lib/supabase';
+import { normalizeRecipe } from './lib/youtube';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<string>('home');
   const [selectedCategory, setSelectedCategory] = useState<RecipeCategory | null>(null);
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
 
-  // Dynamic Catalog States with localStorage persistence
+  // Dynamic Catalog States with localStorage persistence and normalized video fields
   const [recipes, setRecipes] = useState<Recipe[]>(() => {
     try {
       const saved = localStorage.getItem('dala_recipes');
-      return saved ? JSON.parse(saved) : RECIPES;
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed.map((item: any) => normalizeRecipe(item));
+        }
+      }
+      return RECIPES.map((item) => normalizeRecipe(item));
     } catch {
-      return RECIPES;
+      return RECIPES.map((item) => normalizeRecipe(item));
     }
   });
 
@@ -309,9 +317,10 @@ export default function App() {
   };
 
   const handleOpenRecipe = (recipe: Recipe) => {
-    setSelectedRecipe(recipe);
+    const normalized = normalizeRecipe(recipe);
+    setSelectedRecipe(normalized);
     setActiveTab('recipe-detail');
-    recordAnalytics('recipe_view', recipe.id, recipe.title, `recipe/${recipe.id}`);
+    recordAnalytics('recipe_view', normalized.id, normalized.title, `recipe/${normalized.id}`);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -361,11 +370,44 @@ export default function App() {
       }
     });
 
-    fetchRecipesFromSupabase().then((remoteRecipes) => {
-      if (remoteRecipes && remoteRecipes.length > 0) {
-        setRecipes(remoteRecipes);
+    // Recipe Synchronization with real-time updates and window focus reload
+    const reloadRecipes = () => {
+      fetchRecipesFromSupabase().then((remoteRecipes) => {
+        if (remoteRecipes && remoteRecipes.length > 0) {
+          setRecipes(remoteRecipes);
+        }
+      });
+    };
+
+    reloadRecipes();
+
+    // Re-fetch immediately when user returns from Supabase dashboard or another tab
+    const handleWindowFocus = () => {
+      reloadRecipes();
+    };
+    window.addEventListener('focus', handleWindowFocus);
+
+    // Supabase Real-time updates listener on recipes table
+    let recipeChannel: any = null;
+    if (supabase) {
+      try {
+        recipeChannel = supabase
+          .channel('recipes-realtime-listener')
+          .on(
+            'postgres_changes',
+            { event: '*', schema: 'public', table: 'recipes' },
+            () => {
+              reloadRecipes();
+            }
+          )
+          .subscribe();
+      } catch (err) {
+        console.warn('Realtime subscription error:', err);
       }
-    });
+    }
+
+    // Polling fallback every 8 seconds to guarantee prompt reflection of database edits
+    const pollInterval = setInterval(reloadRecipes, 8000);
 
     fetchArticlesFromSupabase().then((remoteArticles) => {
       if (remoteArticles && remoteArticles.length > 0) {
@@ -402,7 +444,25 @@ export default function App() {
         setAnalyticsEvents(remoteAnalytics);
       }
     });
+
+    return () => {
+      window.removeEventListener('focus', handleWindowFocus);
+      clearInterval(pollInterval);
+      if (recipeChannel && supabase) {
+        supabase.removeChannel(recipeChannel);
+      }
+    };
   }, []);
+
+  // Synchronize currently opened recipe whenever recipes state updates
+  useEffect(() => {
+    if (selectedRecipe) {
+      const latest = recipes.find((r) => r.id === selectedRecipe.id);
+      if (latest) {
+        setSelectedRecipe(normalizeRecipe(latest));
+      }
+    }
+  }, [recipes]);
 
   return (
     <div className="min-h-screen flex flex-col font-sans bg-dala-cream text-dala-text antialiased selection:bg-dala-green selection:text-white">
@@ -499,7 +559,7 @@ export default function App() {
               transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
             >
               <RecipeDetailView
-                recipe={recipes.find((r) => r.id === selectedRecipe.id) || selectedRecipe}
+                recipe={normalizeRecipe(recipes.find((r) => r.id === selectedRecipe.id) || selectedRecipe)}
                 onBack={() => {
                   setActiveTab('recipes');
                   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -508,6 +568,7 @@ export default function App() {
                 allRecipes={publicRecipes}
                 isSaved={savedRecipeIds.includes(selectedRecipe.id)}
                 onToggleSave={(r) => handleToggleSave(r)}
+                onPlayVideo={handleOpenYoutubeVideo}
               />
             </motion.div>
           )}

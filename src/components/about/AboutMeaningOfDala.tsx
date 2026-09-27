@@ -20,7 +20,7 @@ export const AboutMeaningOfDala: React.FC = () => {
         </h2>
         
         <p className="text-base sm:text-xl font-serif italic text-dala-text-light leading-relaxed mb-8 max-w-3xl">
-          "Dala is the Luo word for home. It represents more than just a physical space; it's a feeling of belonging, comfort, and nourishment. DalaKitchen is an extension of that feeling, offering recipes that feel like a warm embrace."
+          "Dala means home. It represents more than just a physical space; it's a feeling of belonging, comfort, and nourishment. DalaKitchen is an extension of that feeling, offering recipes that feel like a warm embrace."
         </p>
         
         <div className="w-16 h-px bg-gray-300"></div>

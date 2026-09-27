@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ArrowLeft,
   Star,
@@ -14,9 +14,14 @@ import {
   Share2,
   Printer,
   Heart,
+  Play,
+  Maximize2,
+  RotateCcw,
+  Sparkles,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Recipe } from '../types';
+import { extractYoutubeId } from '../lib/youtube';
 
 interface RecipeDetailViewProps {
   recipe: Recipe;
@@ -25,6 +30,7 @@ interface RecipeDetailViewProps {
   allRecipes: Recipe[];
   isSaved?: boolean;
   onToggleSave?: (recipe: Recipe) => void;
+  onPlayVideo?: (videoId: string) => void;
 }
 
 export const RecipeDetailView: React.FC<RecipeDetailViewProps> = ({
@@ -34,9 +40,48 @@ export const RecipeDetailView: React.FC<RecipeDetailViewProps> = ({
   allRecipes,
   isSaved = false,
   onToggleSave,
+  onPlayVideo,
 }) => {
   // Local state for interactive ingredient checkboxes
   const [checkedIngredients, setCheckedIngredients] = useState<Record<string, boolean>>({});
+
+  // Dynamic Servings Scaler
+  const baseServings = recipe.servings || 4;
+  const [activeServings, setActiveServings] = useState<number>(baseServings);
+
+  const formatScaledAmount = (amount?: number) => {
+    if (amount === undefined || amount === null) return '';
+    const scaled = (amount * activeServings) / baseServings;
+    if (Number.isInteger(scaled)) return scaled.toString();
+    return Number(scaled.toFixed(2)).toString();
+  };
+
+  // YouTube Video State - supports all variations of property names and links
+  const videoId = extractYoutubeId(
+    recipe.youtubeVideoId,
+    recipe.youtubeUrl,
+    (recipe as any).youtube_video_id,
+    (recipe as any).youtube_url,
+    (recipe as any).videoId,
+    (recipe as any).videoUrl
+  );
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [videoThumb, setVideoThumb] = useState<string>(() =>
+    videoId ? `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg` : recipe.image
+  );
+
+  useEffect(() => {
+    setIsPlaying(false);
+    if (videoId) {
+      setVideoThumb(`https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`);
+    } else {
+      setVideoThumb(recipe.image);
+    }
+  }, [recipe.id, videoId, recipe.image]);
+
+  const handlePlayVideo = () => {
+    setIsPlaying(true);
+  };
 
   const toggleIngredient = (id: string) => {
     setCheckedIngredients((prev) => ({
@@ -60,6 +105,124 @@ export const RecipeDetailView: React.FC<RecipeDetailViewProps> = ({
   const relatedRecipes = allRecipes
     .filter((r) => r.id !== recipe.id && (r.category === recipe.category || true))
     .slice(0, 3);
+
+  // Render the Technique Video Card with the video thumbnail as atmospheric background
+  const renderVideoBanner = () => {
+    if (!videoId) return null;
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.4 }}
+        id="recipe-video-section"
+        className="my-8 rounded-3xl bg-[#0E2F24] text-white p-7 sm:p-10 md:p-12 overflow-hidden shadow-xl scroll-mt-28 relative group"
+      >
+        {/* Video thumbnail as atmospheric background image */}
+        <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none select-none">
+          <img
+            src={videoThumb}
+            alt=""
+            aria-hidden="true"
+            className="w-full h-full object-cover object-center filter blur-[1px] brightness-[0.36] scale-105 group-hover:scale-110 transition-transform duration-1000 ease-out"
+          />
+          {/* Deep emerald culinary vignette & gradient overlay for maximum legibility */}
+          <div className="absolute inset-0 bg-gradient-to-r from-[#071f16]/95 via-[#0E2F24]/88 to-[#0E2F24]/75" />
+          <div className="absolute inset-0 bg-[#0E2F24]/30" />
+        </div>
+
+        {isPlaying ? (
+          <div className="space-y-4 relative z-10">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/15 pb-3">
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span className="text-[11px] font-bold uppercase tracking-[0.22em] text-emerald-400">
+                  MASTER THE TECHNIQUE • VIDEO TUTORIAL
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsPlaying(false)}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-white/10 hover:bg-white/20 text-white text-xs font-bold uppercase tracking-wider rounded-full transition-colors cursor-pointer"
+                >
+                  <RotateCcw size={12} />
+                  Hide Video
+                </button>
+                {onPlayVideo && (
+                  <button
+                    type="button"
+                    onClick={() => onPlayVideo(videoId)}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-white/10 hover:bg-white/20 text-white text-xs font-bold uppercase tracking-wider rounded-full transition-colors cursor-pointer"
+                    title="Open full theater dialog"
+                  >
+                    <Maximize2 size={12} />
+                    Theater
+                  </button>
+                )}
+                {recipe.youtubeUrl && (
+                  <a
+                    href={recipe.youtubeUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-red-600/80 hover:bg-red-600 text-white text-xs font-bold uppercase tracking-wider rounded-full transition-colors"
+                  >
+                    <i className="fa-brands fa-youtube"></i>
+                    YouTube
+                  </a>
+                )}
+              </div>
+            </div>
+
+            <div className="relative w-full aspect-video bg-black rounded-2xl overflow-hidden shadow-2xl border border-white/10">
+              <iframe
+                src={`https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&rel=0`}
+                title={`${recipe.title} - Master the Technique`}
+                className="w-full h-full border-0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            </div>
+
+            <p className="text-emerald-100/80 italic font-serif text-xs sm:text-sm text-center pt-1">
+              "Observe the step-by-step technique, the rhythm of the preparation, and the transformation of ingredients into a legacy of flavor."
+            </p>
+          </div>
+        ) : (
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 sm:gap-8 relative z-10">
+            <div className="max-w-xl space-y-3">
+              <p className="text-emerald-400 text-[11px] sm:text-xs font-bold uppercase tracking-[0.25em]">
+                MASTER THE TECHNIQUE
+              </p>
+              <h3 className="font-serif text-2xl sm:text-3xl md:text-4xl text-white font-normal leading-tight">
+                Witness the <span className="italic font-serif">Craft</span> in motion.
+              </h3>
+              <p className="text-emerald-100/90 italic font-serif text-sm sm:text-base leading-relaxed drop-shadow-xs">
+                "Observe the traditional methods, the rhythm of the blade, and the transformation of ingredients into a legacy of flavor."
+              </p>
+            </div>
+
+            <div className="flex-shrink-0 pt-2 lg:pt-0">
+              <motion.button
+                whileHover={{ scale: 1.04 }}
+                whileTap={{ scale: 0.96 }}
+                type="button"
+                onClick={handlePlayVideo}
+                className="bg-white hover:bg-emerald-50 text-[#0E2F24] rounded-full px-7 py-3.5 sm:px-8 sm:py-4 shadow-xl flex items-center gap-3.5 group/btn cursor-pointer transition-all"
+              >
+                <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-[#0E2F24] text-white flex items-center justify-center flex-shrink-0 group-hover/btn:scale-105 transition-transform shadow-inner">
+                  <Play size={14} className="fill-white text-white ml-0.5" />
+                </div>
+                <span className="text-[11px] sm:text-xs font-bold uppercase tracking-[0.2em] text-[#0E2F24]">
+                  WATCH VIDEO GUIDE
+                </span>
+              </motion.button>
+            </div>
+          </div>
+        )}
+      </motion.div>
+    );
+  };
 
   return (
     <div className="bg-dala-cream min-h-screen py-8 sm:py-12">
@@ -183,6 +346,24 @@ export const RecipeDetailView: React.FC<RecipeDetailViewProps> = ({
               </motion.button>
             )}
 
+            {videoId && (
+              <motion.button
+                whileHover={{ scale: 1.04 }}
+                whileTap={{ scale: 0.96 }}
+                onClick={() => {
+                  const el = document.getElementById('recipe-video-section');
+                  if (el) {
+                    el.scrollIntoView({ behavior: 'smooth' });
+                  }
+                  setIsPlaying(true);
+                }}
+                className="flex-1 lg:flex-none flex items-center justify-center gap-2 px-5 py-3 border border-emerald-900 bg-[#0E2F24] text-white text-xs font-bold uppercase tracking-wider rounded-none hover:bg-[#154636] transition-colors shadow-2xs cursor-pointer w-full"
+              >
+                <Play size={14} className="fill-white" />
+                Watch Video
+              </motion.button>
+            )}
+
             <motion.button
               whileHover={{ scale: 1.04 }}
               whileTap={{ scale: 0.96 }}
@@ -208,10 +389,45 @@ export const RecipeDetailView: React.FC<RecipeDetailViewProps> = ({
               id="recipe-ingredients-section"
               className="scroll-mt-24"
             >
-              <h2 className="text-2xl sm:text-3xl font-serif font-bold text-dala-text mb-6 flex items-center gap-3 border-b border-gray-200 pb-3">
-                <ChefHat className="text-dala-green" size={26} />
-                Ingredients
-              </h2>
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 pb-3 mb-6">
+                <h2 className="text-2xl sm:text-3xl font-serif font-bold text-dala-text flex items-center gap-3">
+                  <ChefHat className="text-dala-green" size={26} />
+                  Ingredients
+                </h2>
+
+                {/* Servings Scaler from Design */}
+                {/* <div className="flex items-center gap-2.5">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400">SERVINGS</span>
+                  <div className="inline-flex bg-gray-100 p-0.5 rounded-lg border border-gray-200">
+                    {[2, 4, 8].map((s) => (
+                      <button
+                        key={s}
+                        type="button"
+                        onClick={() => setActiveServings(s)}
+                        className={`px-3 py-1 text-xs font-bold rounded-md transition-all cursor-pointer ${
+                          activeServings === s
+                            ? 'bg-white text-dala-green shadow-xs'
+                            : 'text-gray-500 hover:text-gray-900'
+                        }`}
+                      >
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                </div> */}
+              </div>
+
+              {/* "THE SECRET" Callout Card section (commented out as requested)
+              <div className="border-l-4 border-dala-green bg-[#F4F7F4] rounded-r-2xl p-5 sm:p-6 mb-6">
+                <div className="flex items-center gap-2 text-dala-green text-[11px] font-bold uppercase tracking-[0.2em] mb-2">
+                  <Sparkles size={14} className="text-dala-green" />
+                  <span>THE SECRET</span>
+                </div>
+                <p className="font-serif italic text-dala-text-light text-sm sm:text-base leading-relaxed">
+                  "{recipe.tips?.[0] || 'Ensure your spices are freshly ground from whole pods rather than pre-packaged powder for a distinct, high-impact coastal aroma.'}"
+                </p>
+              </div>
+              */}
 
               <div className="space-y-8 bg-white p-6 sm:p-8 rounded-none border border-gray-200/80 shadow-2xs">
                 {/* Section 1: Dough Ingredients */}
@@ -249,7 +465,7 @@ export const RecipeDetailView: React.FC<RecipeDetailViewProps> = ({
                             }`}
                           >
                             <span className="font-bold text-dala-green mr-2">
-                              {item.amount} {item.unit}
+                              {formatScaledAmount(item.amount)} {item.unit}
                             </span>
                             {item.name}
                           </span>
@@ -295,7 +511,7 @@ export const RecipeDetailView: React.FC<RecipeDetailViewProps> = ({
                               }`}
                             >
                               <span className="font-bold text-dala-green mr-2">
-                                {item.amount} {item.unit}
+                                {formatScaledAmount(item.amount)} {item.unit}
                               </span>
                               {item.name}
                             </span>
@@ -308,12 +524,13 @@ export const RecipeDetailView: React.FC<RecipeDetailViewProps> = ({
               </div>
             </motion.section>
 
-            {/* Instructions Section */}
+            {/* Instructions Section with Memoir Video Section Embedded Within */}
             <motion.section
               initial={{ opacity: 0, y: 15 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-40px' }}
               transition={{ duration: 0.4 }}
+              id="recipe-instructions-section"
             >
               <h2 className="text-2xl sm:text-3xl font-serif font-bold text-dala-text mb-6 flex items-center gap-3 border-b border-gray-200 pb-3">
                 <BookOpen className="text-dala-green" size={26} />
@@ -321,33 +538,46 @@ export const RecipeDetailView: React.FC<RecipeDetailViewProps> = ({
               </h2>
 
               <div className="space-y-6">
-                {recipe.instructions.map((step, idx) => (
-                  <motion.div
-                    key={step.step}
-                    initial={{ opacity: 0, y: 12 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ duration: 0.35, delay: idx * 0.05 }}
-                    className="bg-white p-6 sm:p-8 rounded-none border border-gray-200/80 shadow-2xs flex gap-5 sm:gap-6 items-start"
-                  >
-                    <div className="flex-shrink-0 w-10 h-10 rounded-full bg-dala-cream border border-dala-green/30 text-dala-green flex items-center justify-center font-serif font-bold text-lg">
-                      {step.step}
-                    </div>
-                    <div className="space-y-2 flex-grow">
-                      <h3 className="font-serif font-bold text-lg sm:text-xl text-dala-text">
-                        {step.title}
-                      </h3>
-                      <p className="text-dala-text-light text-sm sm:text-base leading-relaxed">
-                        {step.text}
-                      </p>
-                      {step.tip && (
-                        <div className="mt-3 bg-amber-50 border-l-2 border-amber-400 p-3 text-xs text-amber-900 rounded-none">
-                          <strong>Kitchen Tip:</strong> {step.tip}
+                {recipe.instructions.map((step, idx) => {
+                  const isMiddle =
+                    recipe.instructions.length <= 2
+                      ? idx === 0
+                      : idx === Math.min(1, Math.floor(recipe.instructions.length / 2));
+                  return (
+                    <React.Fragment key={step.step}>
+                      <motion.div
+                        initial={{ opacity: 0, y: 12 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 0.35, delay: idx * 0.05 }}
+                        className="bg-white p-6 sm:p-8 rounded-none border border-gray-200/80 shadow-2xs flex gap-5 sm:gap-6 items-start"
+                      >
+                        <div className="flex-shrink-0 w-10 h-10 rounded-full bg-dala-cream border border-dala-green/30 text-dala-green flex items-center justify-center font-serif font-bold text-lg">
+                          {step.step}
                         </div>
-                      )}
-                    </div>
-                  </motion.div>
-                ))}
+                        <div className="space-y-2 flex-grow">
+                          <h3 className="font-serif font-bold text-lg sm:text-xl text-dala-text">
+                            {step.title}
+                          </h3>
+                          <p className="text-dala-text-light text-sm sm:text-base leading-relaxed">
+                            {step.text}
+                          </p>
+                          {step.tip && (
+                            <div className="mt-3 bg-amber-50 border-l-2 border-amber-400 p-3 text-xs text-amber-900 rounded-none">
+                              <strong>Kitchen Tip:</strong> {step.tip}
+                            </div>
+                          )}
+                        </div>
+                      </motion.div>
+
+                      {/* Video Section embedded within instructions */}
+                      {isMiddle && renderVideoBanner()}
+                    </React.Fragment>
+                  );
+                })}
+
+                {/* If instructions is empty or only 1 step and video wasn't rendered yet */}
+                {recipe.instructions.length === 0 && renderVideoBanner()}
               </div>
             </motion.section>
           </div>

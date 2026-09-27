@@ -2,6 +2,7 @@ import { supabase, isSupabaseConfigured } from './supabase';
 import { Subscriber, Recipe, BlogArticle, Newsletter, YouTubeVideo, AdminUser, SiteSettings, ContactMessage, AnalyticsEvent } from '../types';
 import { INITIAL_SUBSCRIBERS, INITIAL_NEWSLETTERS, INITIAL_ADMIN_USERS, DEFAULT_SITE_SETTINGS } from '../data/adminData';
 import { RECIPES, BLOG_ARTICLES, YOUTUBE_VIDEOS } from '../data/recipesData';
+import { extractYoutubeId, normalizeRecipe } from './youtube';
 
 export async function testSupabaseConnection(): Promise<{ success: boolean; message: string; rawError?: any }> {
   if (!isSupabaseConfigured || !supabase) {
@@ -136,6 +137,12 @@ export async function fetchNewslettersFromSupabase(): Promise<Newsletter[] | nul
 
 export async function syncRecipeToSupabase(recipe: Recipe) {
   if (!isSupabaseConfigured || !supabase) return;
+  const videoId = extractYoutubeId(
+    recipe.youtubeVideoId,
+    recipe.youtubeUrl,
+    (recipe as any).youtube_video_id,
+    (recipe as any).youtube_url
+  );
   try {
     const { error } = await supabase.from('recipes').upsert(
       {
@@ -151,7 +158,7 @@ export async function syncRecipeToSupabase(recipe: Recipe) {
         image: recipe.image,
         ingredients: recipe.ingredients,
         instructions: recipe.instructions,
-        youtube_video_id: recipe.youtubeVideoId || null,
+        youtube_video_id: videoId || recipe.youtubeVideoId || recipe.youtubeUrl || null,
         archived: recipe.archived || false,
         draft: recipe.draft || false,
         featured: recipe.featured || false,
@@ -175,28 +182,46 @@ export async function fetchRecipesFromSupabase(): Promise<Recipe[] | null> {
       }
       return RECIPES;
     }
-    return data.map((item) => ({
-      id: item.id,
-      title: item.title,
-      slug: item.slug || item.id,
-      category: item.category,
-      image: item.image,
-      prepTime: item.prep_time || '15 mins',
-      cookTime: item.cook_time || '30 mins',
-      totalTime: '45 mins',
-      servings: item.servings || 4,
-      rating: 4.9,
-      reviewCount: 24,
-      description: item.description || '',
-      featured: item.featured || false,
-      youtubeVideoId: item.youtube_video_id || undefined,
-      difficulty: item.difficulty || 'Easy',
-      ingredients: item.ingredients || [],
-      instructions: item.instructions || [],
-      tips: item.tips || [],
-      archived: item.archived || false,
-      draft: item.draft || false,
-    }));
+    return data.map((item) => {
+      const derivedId =
+        extractYoutubeId(
+          item.youtube_video_id,
+          item.youtube_url,
+          item.youtubeVideoId,
+          item.youtubeUrl
+        ) || undefined;
+
+      const rawUrl =
+        (item.youtube_url && String(item.youtube_url).startsWith('http') ? item.youtube_url : undefined) ||
+        (item.youtube_video_id && String(item.youtube_video_id).startsWith('http') ? item.youtube_video_id : undefined);
+
+      const derivedUrl =
+        rawUrl || (derivedId ? `https://www.youtube.com/watch?v=${derivedId}` : undefined);
+
+      return {
+        id: item.id,
+        title: item.title,
+        slug: item.slug || item.id,
+        category: item.category,
+        image: item.image,
+        prepTime: item.prep_time || '15 mins',
+        cookTime: item.cook_time || '30 mins',
+        totalTime: '45 mins',
+        servings: item.servings || 4,
+        rating: 4.9,
+        reviewCount: 24,
+        description: item.description || '',
+        featured: item.featured || false,
+        youtubeUrl: derivedUrl,
+        youtubeVideoId: derivedId,
+        difficulty: item.difficulty || 'Easy',
+        ingredients: item.ingredients || [],
+        instructions: item.instructions || [],
+        tips: item.tips || [],
+        archived: item.archived || false,
+        draft: item.draft || false,
+      };
+    });
   } catch {
     return null;
   }
