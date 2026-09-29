@@ -82,9 +82,9 @@ export const YouTubeView: React.FC<YouTubeViewProps> = ({ videos }) => {
             transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
             className="max-w-2xl text-center md:text-left"
           >
-            <div className="inline-flex items-center gap-2 px-3.5 py-1 bg-red-100 text-red-700 rounded-full text-xs font-bold uppercase tracking-wider mb-4">
+            {/* <div className="inline-flex items-center gap-2 px-3.5 py-1 bg-red-100 text-red-700 rounded-full text-xs font-bold uppercase tracking-wider mb-4">
               <Video size={14} /> Dala Kitchen Studio
-            </div>
+            </div> */}
             <h1 className="text-4xl sm:text-6xl font-serif font-bold text-dala-text uppercase tracking-wider mb-2">
               WATCH &amp; COOK
             </h1>
@@ -96,7 +96,7 @@ export const YouTubeView: React.FC<YouTubeViewProps> = ({ videos }) => {
               <motion.a
                 whileHover={{ scale: 1.04 }}
                 whileTap={{ scale: 0.96 }}
-                href="https://youtube.com"
+                href="https://www.youtube.com/@quinn_Achieng"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2.5 px-8 py-4 bg-[#DC2626] hover:bg-[#B91C1C] text-white font-bold text-xs uppercase tracking-widest rounded-none shadow-md shadow-red-600/20 transition-all cursor-pointer"
@@ -117,7 +117,7 @@ export const YouTubeView: React.FC<YouTubeViewProps> = ({ videos }) => {
             <div className="relative inline-block">
               <div className="w-48 h-48 sm:w-60 sm:h-60 rounded-full overflow-hidden border-4 border-white shadow-xl ring-2 ring-dala-green/30">
                 <img
-                  src="/images/achieng.jpg"
+                  src="/images/achieng.png"
                   alt="Chef Achieng"
                   className="w-full h-full object-cover"
                 />
