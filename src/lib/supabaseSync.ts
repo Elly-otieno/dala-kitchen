@@ -286,28 +286,59 @@ export async function fetchArticlesFromSupabase(): Promise<BlogArticle[] | null>
   }
 }
 
-export async function syncYouTubeVideoToSupabase(video: YouTubeVideo) {
-  if (!isSupabaseConfigured || !supabase) return;
+export async function syncYouTubeVideoToSupabase(video: YouTubeVideo): Promise<boolean> {
+  if (!isSupabaseConfigured || !supabase) return false;
+
+  // Persist featured video ID in localStorage for resilient client-side state
+  if (typeof localStorage !== 'undefined') {
+    if (video.featured) {
+      localStorage.setItem('dala_featured_youtube_id', video.id);
+    } else if (localStorage.getItem('dala_featured_youtube_id') === video.id) {
+      localStorage.removeItem('dala_featured_youtube_id');
+    }
+  }
+
+  const basePayload: any = {
+    id: video.id,
+    title: video.title,
+    duration: video.duration,
+    thumbnail: video.thumbnail,
+    video_id: video.videoId,
+    published_at: video.publishedAt,
+    description: video.description || null,
+    series: video.series || null,
+    archived: Boolean(video.archived),
+    draft: Boolean(video.draft),
+  };
+
   try {
+    // 1. Try upserting with featured field
     const { error } = await supabase.from('youtube_videos').upsert(
-      {
-        id: video.id,
-        title: video.title,
-        duration: video.duration,
-        thumbnail: video.thumbnail,
-        video_id: video.videoId,
-        published_at: video.publishedAt,
-        description: video.description || null,
-        series: video.series || null,
-        featured: video.featured || false,
-        archived: video.archived || false,
-        draft: video.draft || false,
-      },
+      { ...basePayload, featured: Boolean(video.featured) },
       { onConflict: 'id' }
     );
-    if (error) console.warn('Supabase youtube_videos sync warning:', error.message);
+
+    if (error) {
+      // 2. If schema does not have 'featured' column (PGRST204), retry with basePayload
+      if (error.code === 'PGRST204' || error.message?.includes('featured')) {
+        const { error: retryError } = await supabase
+          .from('youtube_videos')
+          .upsert(basePayload, { onConflict: 'id' });
+
+        if (retryError) {
+          console.warn('Supabase youtube_videos retry sync error:', retryError.message);
+          return false;
+        }
+        return true;
+      }
+
+      console.warn('Supabase youtube_videos sync warning:', error.message);
+      return false;
+    }
+    return true;
   } catch (err) {
     console.warn('Failed to sync video to Supabase:', err);
+    return false;
   }
 }
 
@@ -315,13 +346,23 @@ export async function fetchYouTubeVideosFromSupabase(): Promise<YouTubeVideo[] |
   if (!isSupabaseConfigured || !supabase) return null;
   try {
     const { data, error } = await supabase.from('youtube_videos').select('*');
-    if (error || !data || data.length === 0) {
+    if (error) {
+      console.warn('Supabase fetch youtube_videos warning:', error.message);
+      return null;
+    }
+    if (!data || data.length === 0) {
       // Auto-seed initial youtube videos to Supabase if table is empty
       for (const vid of YOUTUBE_VIDEOS) {
         await syncYouTubeVideoToSupabase(vid);
       }
       return YOUTUBE_VIDEOS;
     }
+
+    const storedFeaturedId =
+      typeof localStorage !== 'undefined'
+        ? localStorage.getItem('dala_featured_youtube_id')
+        : null;
+
     return data.map((item) => {
       const rawVideoId =
         item.video_id ||
@@ -344,6 +385,13 @@ export async function fetchYouTubeVideosFromSupabase(): Promise<YouTubeVideo[] |
         cleanThumbnail = `https://img.youtube.com/vi/${cleanVideoId}/hqdefault.jpg`;
       }
 
+      const isFeatured =
+        typeof item.featured === 'boolean'
+          ? item.featured
+          : storedFeaturedId
+          ? item.id === storedFeaturedId
+          : item.id === 'v-feat';
+
       return {
         id: item.id,
         title: item.title,
@@ -353,9 +401,9 @@ export async function fetchYouTubeVideosFromSupabase(): Promise<YouTubeVideo[] |
         publishedAt: item.published_at || 'Recently',
         description: item.description || undefined,
         series: item.series || undefined,
-        featured: item.featured || false,
-        archived: item.archived || false,
-        draft: item.draft || false,
+        featured: isFeatured,
+        archived: Boolean(item.archived),
+        draft: Boolean(item.draft),
       };
     });
   } catch {
@@ -687,7 +735,3 @@ export async function clearAnalyticsFromSupabase() {
     isPageAnalyticsTableMissing = true;
   }
 }
-
-
-
-

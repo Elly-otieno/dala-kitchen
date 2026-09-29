@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { YouTubeVideo } from '../../types';
 import { ImageUploadOrUrlInput } from './ImageUploadOrUrlInput';
+import { extractYoutubeId } from '../../lib/youtube';
 
 interface AdminYouTubeEditorProps {
   initialVideo?: YouTubeVideo | null;
@@ -30,25 +31,20 @@ export const AdminYouTubeEditor: React.FC<AdminYouTubeEditorProps> = ({
   onSave,
   onCancel,
 }) => {
-  const [title, setTitle] = useState(
-    initialVideo?.title || 'Mastering Sourdough Fermentation Lab'
-  );
-  const [thumbnail, setThumbnail] = useState(
-    initialVideo?.thumbnail ||
-      'https://images.unsplash.com/photo-1589367920969-ab8e050bbb04?auto=format&fit=crop&w=800&q=80'
-  );
+  const [title, setTitle] = useState(initialVideo?.title || '');
+  const [thumbnail, setThumbnail] = useState(initialVideo?.thumbnail || '');
   const [youtubeUrl, setYoutubeUrl] = useState(
-    (initialVideo as any)?.youtubeVideoId || initialVideo?.videoId
-      ? `https://www.youtube.com/watch?v=${(initialVideo as any)?.youtubeVideoId || initialVideo?.videoId}`
-      : 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'
+    initialVideo?.videoId
+      ? `https://www.youtube.com/watch?v=${initialVideo.videoId}`
+      : ''
   );
-  const [youtubeVideoId, setYoutubeVideoId] = useState(
-    (initialVideo as any)?.youtubeVideoId || initialVideo?.videoId || 'dQw4w9WgXcQ'
-  );
-  const [duration, setDuration] = useState(initialVideo?.duration || '18:45');
+  const [youtubeVideoId, setYoutubeVideoId] = useState(initialVideo?.videoId || '');
+  const [duration, setDuration] = useState(initialVideo?.duration || '15:00');
   
   // Default series options
   const defaultSeriesOptions = [
+    'Sourdough Series',
+    'Kenyan Classics',
     'Sourdough Masterclass',
     'Kenyan Culinary Classics',
     'Air Fryer Quick Meals',
@@ -71,15 +67,12 @@ export const AdminYouTubeEditor: React.FC<AdminYouTubeEditorProps> = ({
       ? initialVideo.series
       : initialVideo?.series
       ? initialVideo.series
-      : 'Sourdough Masterclass'
+      : allInitialSeries[0] || 'Sourdough Series'
   );
   const [customSeriesName, setCustomSeriesName] = useState<string>('');
   const [isCreatingOtherSeries, setIsCreatingOtherSeries] = useState<boolean>(false);
 
-  const [description, setDescription] = useState(
-    initialVideo?.description ||
-      'In this episode of DalaKitchen TV, Chef Achieng breaks down wild yeast maintenance, hydro-ratios, and oven-spring mechanics.'
-  );
+  const [description, setDescription] = useState(initialVideo?.description || '');
   const [featured, setFeatured] = useState<boolean>(
     initialVideo?.featured ?? false
   );
@@ -98,15 +91,15 @@ export const AdminYouTubeEditor: React.FC<AdminYouTubeEditorProps> = ({
   ]);
   const [newTagInput, setNewTagInput] = useState('');
 
-  // Auto extract Youtube ID
+  // Auto extract Youtube ID & Thumbnail
   const handleUrlChange = (url: string) => {
     setYoutubeUrl(url);
-    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-    const match = url.match(regExp);
-    if (match && match[2].length === 11) {
-      setYoutubeVideoId(match[2]);
-    } else if (url.length === 11) {
-      setYoutubeVideoId(url);
+    const extracted = extractYoutubeId(url) || (url.trim().length === 11 ? url.trim() : '');
+    if (extracted) {
+      setYoutubeVideoId(extracted);
+      if (!thumbnail || thumbnail.includes('img.youtube.com/vi/') || thumbnail.includes('unsplash')) {
+        setThumbnail(`https://img.youtube.com/vi/${extracted}/hqdefault.jpg`);
+      }
     }
   };
 
@@ -128,6 +121,13 @@ export const AdminYouTubeEditor: React.FC<AdminYouTubeEditorProps> = ({
       return;
     }
 
+    const finalVideoId =
+      youtubeVideoId.trim() || extractYoutubeId(youtubeUrl) || 'dQw4w9WgXcQ';
+
+    const finalThumbnail =
+      thumbnail.trim() ||
+      `https://img.youtube.com/vi/${finalVideoId}/hqdefault.jpg`;
+
     let finalSeries = selectedSeriesSelect;
     if (isCreatingOtherSeries) {
       if (!customSeriesName.trim()) {
@@ -140,11 +140,11 @@ export const AdminYouTubeEditor: React.FC<AdminYouTubeEditorProps> = ({
     const videoObj: YouTubeVideo = {
       id: initialVideo?.id || `yt-${Date.now()}`,
       title: title.trim(),
-      videoId: youtubeVideoId || 'dQw4w9WgXcQ',
-      thumbnail,
-      duration,
+      videoId: finalVideoId,
+      thumbnail: finalThumbnail,
+      duration: duration.trim() || '10:00',
       series: finalSeries,
-      description,
+      description: description.trim(),
       publishedAt: initialVideo?.publishedAt || 'Just Now',
       featured,
       archived: initialVideo?.archived ?? false,

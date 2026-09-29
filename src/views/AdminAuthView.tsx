@@ -204,7 +204,7 @@ export const AdminAuthView: React.FC<AdminAuthViewProps> = ({
       const isRegisteredValid = registeredUser && (cleanPass === 'admin123' || cleanPass === 'password123' || cleanPass.length >= 6);
 
       if (!isDefaultHeadChef && !isDefaultChef && !isDefaultMarcus && !isDefaultElena && !isRegisteredValid) {
-        setErrorMsg(' Access Denied: Invalid email or password. Please verify your credentials.');
+        setErrorMsg('❌ Access Denied: Invalid email or password. Please verify your credentials or use the demo credentials provided.');
         return;
       }
 
@@ -232,7 +232,7 @@ export const AdminAuthView: React.FC<AdminAuthViewProps> = ({
     const cleanCode = regInviteCode.trim().toUpperCase();
     const validInviteCodes = ['DK-ADMIN-2026', 'DK-STAFF-2026', 'DALA2026', 'DK-ADMIN-XXXX'];
     if (!validInviteCodes.includes(cleanCode)) {
-      setErrorMsg('Invalid Secret Invite Code. Authorized code required for internal staff access.');
+      setErrorMsg('❌ Invalid Secret Invite Code. Authorized code required for internal staff access (e.g. DK-ADMIN-2026).');
       return;
     }
 
@@ -307,7 +307,7 @@ export const AdminAuthView: React.FC<AdminAuthViewProps> = ({
   // Logged-In Full Admin Dashboard Panel View
   if (loggedInUser) {
     return (
-      <div className="flex h-screen bg-[#fcf9f8] overflow-hidden font-sans relative">
+      <div className="flex h-screen bg-dala-cream overflow-hidden font-sans relative">
         {/* Reusable Admin Sidebar */}
         <AdminSidebar
           activeTab={adminTab}
@@ -432,9 +432,12 @@ export const AdminAuthView: React.FC<AdminAuthViewProps> = ({
                   });
                   syncYouTubeVideoToSupabase(updatedVideo);
                   setEditingItem(null);
-                  setAdminTab('dashboard');
+                  setAdminTab('youtube');
                 }}
-                onCancel={() => setEditingItem(null)}
+                onCancel={() => {
+                  setEditingItem(null);
+                  setAdminTab('youtube');
+                }}
               />
             ) : adminTab === 'analytics' ? (
               <AdminAnalyticsView
@@ -665,7 +668,7 @@ export const AdminAuthView: React.FC<AdminAuthViewProps> = ({
 
 
   return (
-    <div className="bg-[#fcf9f8] text-[#1b1c1c] min-h-screen flex flex-col justify-center items-center p-4 sm:p-6 md:p-12 relative overflow-hidden font-sans">
+    <div className="bg-dala-cream text-dala-text min-h-screen flex flex-col justify-center items-center p-4 sm:p-6 md:p-12 relative overflow-hidden font-sans">
       {/* Decorative subtle background elements */}
       <div className="absolute inset-0 pointer-events-none opacity-20 z-0">
         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-[#bcccab] blur-3xl mix-blend-multiply"></div>
@@ -681,8 +684,8 @@ export const AdminAuthView: React.FC<AdminAuthViewProps> = ({
           }}
           className={`px-5 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${
             mode === 'login'
-              ? 'bg-[#27331c] text-white shadow-xs'
-              : 'text-gray-600 hover:text-[#27331c]'
+              ? 'bg-dala-green-dark text-white shadow-xs'
+              : 'text-gray-600 hover:bg-dala-green-dark'
           }`}
         >
           Sign In
@@ -694,8 +697,8 @@ export const AdminAuthView: React.FC<AdminAuthViewProps> = ({
           }}
           className={`px-5 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${
             mode === 'register'
-              ? 'bg-[#27331c] text-white shadow-xs'
-              : 'text-gray-600 hover:text-[#27331c]'
+              ? 'bg-dala-green-dark text-white shadow-xs'
+              : 'text-gray-600 hover:bg-dala-green-dark'
           }`}
         >
           Register
@@ -708,7 +711,7 @@ export const AdminAuthView: React.FC<AdminAuthViewProps> = ({
           
           {/* Top Accent line for Login */}
           {mode === 'login' && (
-            <div className="absolute top-0 left-0 w-full h-1.5 bg-[#27331c]"></div>
+            <div className="absolute top-0 left-0 w-full h-1.5 bg-dala-green-dark"></div>
           )}
 
           {/* REGISTER FORM DESIGN */}
@@ -723,7 +726,7 @@ export const AdminAuthView: React.FC<AdminAuthViewProps> = ({
                     className="h-12 w-auto object-contain mx-auto"
                   />
                 </div>
-                <h1 className="font-serif text-2xl md:text-3xl font-bold text-[#27331c] mb-1 tracking-wider uppercase">
+                <h1 className="font-serif text-2xl md:text-3xl font-bold bg-dala-green-dark mb-1 tracking-wider uppercase">
                   Staff Registration
                 </h1>
                 <p className="font-signature text-xl md:text-2xl text-[#765845]">
@@ -756,7 +759,7 @@ export const AdminAuthView: React.FC<AdminAuthViewProps> = ({
                 {/* Full Name Field */}
                 <div>
                   <label
-                    className="font-sans font-bold text-[11px] uppercase tracking-[0.15em] text-[#454840] block mb-2"
+                    className="font-sans font-bold text-[11px] uppercase tracking-[0.15em] text-dala-text-light block mb-2"
                     htmlFor="fullName"
                   >
                     Full Name
@@ -774,7 +777,7 @@ export const AdminAuthView: React.FC<AdminAuthViewProps> = ({
                       value={regFullName}
                       onChange={(e) => setRegFullName(e.target.value)}
                       placeholder="Jane Doe"
-                      className="w-full bg-[#fcf9f8] border border-[#765845]/20 rounded-lg py-3 pl-11 pr-4 text-sm text-[#1b1c1c] placeholder:text-gray-400 focus:outline-none focus:border-[#27331c] focus:ring-1 focus:ring-[#27331c] transition-all"
+                      className="w-full bg-dala-cream border border-[#765845]/20 rounded-lg py-3 pl-11 pr-4 text-sm text-dala-text placeholder:text-gray-400 focus:outline-none focus:border-[#27331c] focus:ring-1 focus:ring-[#27331c] transition-all"
                     />
                   </div>
                 </div>
@@ -782,7 +785,7 @@ export const AdminAuthView: React.FC<AdminAuthViewProps> = ({
                 {/* Email Field */}
                 <div>
                   <label
-                    className="font-sans font-bold text-[11px] uppercase tracking-[0.15em] text-[#454840] block mb-2"
+                    className="font-sans font-bold text-[11px] uppercase tracking-[0.15em] text-dala-text-light block mb-2"
                     htmlFor="email"
                   >
                     Email Address
@@ -800,7 +803,7 @@ export const AdminAuthView: React.FC<AdminAuthViewProps> = ({
                       value={regEmail}
                       onChange={(e) => setRegEmail(e.target.value)}
                       placeholder="jane@dalakitchen.com"
-                      className="w-full bg-[#fcf9f8] border border-[#765845]/20 rounded-lg py-3 pl-11 pr-4 text-sm text-[#1b1c1c] placeholder:text-gray-400 focus:outline-none focus:border-[#27331c] focus:ring-1 focus:ring-[#27331c] transition-all"
+                      className="w-full bg-dala-cream border border-[#765845]/20 rounded-lg py-3 pl-11 pr-4 text-sm text-dala-text placeholder:text-gray-400 focus:outline-none focus:border-[#27331c] focus:ring-1 focus:ring-[#27331c] transition-all"
                     />
                   </div>
                 </div>
@@ -808,7 +811,7 @@ export const AdminAuthView: React.FC<AdminAuthViewProps> = ({
                 {/* Password Field */}
                 <div>
                   <label
-                    className="font-sans font-bold text-[11px] uppercase tracking-[0.15em] text-[#454840] block mb-2"
+                    className="font-sans font-bold text-[11px] uppercase tracking-[0.15em] text-dala-text-light block mb-2"
                     htmlFor="password"
                   >
                     Password
@@ -826,7 +829,7 @@ export const AdminAuthView: React.FC<AdminAuthViewProps> = ({
                       value={regPassword}
                       onChange={(e) => setRegPassword(e.target.value)}
                       placeholder="••••••••"
-                      className="w-full bg-[#fcf9f8] border border-[#765845]/20 rounded-lg py-3 pl-11 pr-10 text-sm text-[#1b1c1c] placeholder:text-gray-400 focus:outline-none focus:border-[#27331c] focus:ring-1 focus:ring-[#27331c] transition-all"
+                      className="w-full bg-dala-cream border border-[#765845]/20 rounded-lg py-3 pl-11 pr-10 text-sm text-dala-text placeholder:text-gray-400 focus:outline-none focus:border-[#27331c] focus:ring-1 focus:ring-[#27331c] transition-all"
                     />
                     <button
                       type="button"
@@ -841,7 +844,7 @@ export const AdminAuthView: React.FC<AdminAuthViewProps> = ({
                 {/* Secret Invite Code Field */}
                 <div>
                   <label
-                    className="font-sans font-bold text-[11px] uppercase tracking-[0.15em] text-[#454840] mb-2 flex items-center gap-1.5"
+                    className="font-sans font-bold text-[11px] uppercase tracking-[0.15em] text-dala-text-light mb-2 flex items-center gap-1.5"
                     htmlFor="inviteCode"
                   >
                     <span>Secret Invite Code</span>
@@ -865,7 +868,7 @@ export const AdminAuthView: React.FC<AdminAuthViewProps> = ({
                       value={regInviteCode}
                       onChange={(e) => setRegInviteCode(e.target.value)}
                       placeholder="DK-ADMIN-XXXX"
-                      className="w-full bg-[#fcf9f8] border border-[#765845]/20 rounded-lg py-3 pl-11 pr-4 text-sm text-[#1b1c1c] placeholder:text-gray-400 focus:outline-none focus:border-[#27331c] focus:ring-1 focus:ring-[#27331c] transition-all"
+                      className="w-full bg-dala-cream border border-[#765845]/20 rounded-lg py-3 pl-11 pr-4 text-sm text-dala-text placeholder:text-gray-400 focus:outline-none focus:border-[#27331c] focus:ring-1 focus:ring-[#27331c] transition-all"
                     />
                   </div>
                 </div>
@@ -875,7 +878,7 @@ export const AdminAuthView: React.FC<AdminAuthViewProps> = ({
                   <button
                     type="submit"
                     disabled={isLoading}
-                    className="w-full bg-[#27331c] text-white font-sans font-bold text-xs uppercase tracking-[0.15em] py-4 rounded-lg hover:-translate-y-0.5 hover:shadow-lg transition-all duration-300 flex justify-center items-center gap-2 cursor-pointer disabled:opacity-70"
+                    className="w-full bg-dala-green-dark text-white font-sans font-bold text-xs uppercase tracking-[0.15em] py-4 rounded-lg hover:-translate-y-0.5 hover:shadow-lg transition-all duration-300 flex justify-center items-center gap-2 cursor-pointer disabled:opacity-70"
                   >
                     {isLoading ? 'Creating Account...' : 'Create Account'}
                     <ArrowRight size={18} />
@@ -885,14 +888,14 @@ export const AdminAuthView: React.FC<AdminAuthViewProps> = ({
 
               {/* Footer Links */}
               <div className="mt-8 text-center border-t border-[#765845]/10 pt-5">
-                <p className="text-sm text-[#454840]">
+                <p className="text-sm text-dala-text-light">
                   Already have an account?{' '}
                   <button
                     onClick={() => {
                       setMode('login');
                       setErrorMsg('');
                     }}
-                    className="text-[#765845] font-semibold hover:text-[#27331c] transition-colors hover:underline underline-offset-4 cursor-pointer"
+                    className="text-[#765845] font-semibold hover:bg-dala-green-dark transition-colors hover:underline underline-offset-4 cursor-pointer"
                   >
                     Log in
                   </button>
@@ -906,7 +909,7 @@ export const AdminAuthView: React.FC<AdminAuthViewProps> = ({
             <div>
               {/* Header Section */}
               <div className="text-center mb-6">
-                <h1 className="font-cinzel text-2xl md:text-3xl font-bold text-[#27331c] tracking-widest mb-1 uppercase">
+                <h1 className="font-cinzel text-2xl md:text-3xl font-bold bg-dala-green-dark tracking-widest mb-1 uppercase">
                   DalaKitchen Admin
                 </h1>
                 <p className="font-signature text-xl md:text-2xl text-[#765845]">
@@ -915,7 +918,39 @@ export const AdminAuthView: React.FC<AdminAuthViewProps> = ({
               </div>
 
               {/* Authorized Staff Credentials Callout Box */}
-              
+              {/* <div className="mb-6 p-4 bg-[#f8f6f3] border border-[#27331c]/20 rounded-xl space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-1.5 text-xs font-bold bg-dala-green-dark uppercase tracking-wider">
+                    <Key size={14} className="text-[#765845]" /> Authorized Credentials
+                  </span>
+                  <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full">
+                    Protected Access
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 gap-1.5 text-[11px] font-mono text-gray-700 bg-white p-3 rounded-lg border border-[#e6e2dc]">
+                  <div className="flex items-center justify-between">
+                    <span><strong className="bg-dala-green-dark">Head Chef:</strong> achieng@dalakitchen.com</span>
+                    <span className="text-amber-800 font-bold bg-amber-50 px-1.5 py-0.5 rounded">admin123</span>
+                  </div>
+                  <div className="flex items-center justify-between pt-1 border-t border-gray-100">
+                    <span><strong className="bg-dala-green-dark">Staff Chef:</strong> chef@dalakitchen.com</span>
+                    <span className="text-amber-800 font-bold bg-amber-50 px-1.5 py-0.5 rounded">password123</span>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLoginEmail('achieng@dalakitchen.com');
+                    setLoginPassword('admin123');
+                    setErrorMsg('');
+                  }}
+                  className="w-full text-center text-[11px] font-bold text-[#765845] hover:bg-dala-green-dark hover:underline cursor-pointer pt-0.5"
+                >
+                  ⚡ Click here to Auto-fill Admin Credentials
+                </button>
+              </div> */}
 
               {errorMsg && (
                 <div className="mb-6 p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-lg text-center font-medium">
@@ -928,7 +963,7 @@ export const AdminAuthView: React.FC<AdminAuthViewProps> = ({
                 {/* Email Field */}
                 <div>
                   <label
-                    className="font-sans font-bold text-[11px] uppercase tracking-[0.15em] text-[#454840] block mb-2"
+                    className="font-sans font-bold text-[11px] uppercase tracking-[0.15em] text-dala-text-light block mb-2"
                     htmlFor="loginEmail"
                   >
                     Email Address
@@ -946,7 +981,7 @@ export const AdminAuthView: React.FC<AdminAuthViewProps> = ({
                       value={loginEmail}
                       onChange={(e) => setLoginEmail(e.target.value)}
                       placeholder="chef@dalakitchen.com"
-                      className="w-full bg-[#fcf9f8] border border-[#765845]/20 rounded-lg py-3 pl-11 pr-4 text-sm text-[#1b1c1c] placeholder:text-gray-400 focus:outline-none focus:border-[#27331c] focus:ring-1 focus:ring-[#27331c] transition-all"
+                      className="w-full bg-dala-cream border border-[#765845]/20 rounded-lg py-3 pl-11 pr-4 text-sm text-dala-text placeholder:text-gray-400 focus:outline-none focus:border-[#27331c] focus:ring-1 focus:ring-[#27331c] transition-all"
                     />
                   </div>
                 </div>
@@ -955,7 +990,7 @@ export const AdminAuthView: React.FC<AdminAuthViewProps> = ({
                 <div>
                   <div className="flex justify-between items-center mb-2">
                     <label
-                      className="font-sans font-bold text-[11px] uppercase tracking-[0.15em] text-[#454840]"
+                      className="font-sans font-bold text-[11px] uppercase tracking-[0.15em] text-dala-text-light"
                       htmlFor="loginPassword"
                     >
                       Password
@@ -966,7 +1001,7 @@ export const AdminAuthView: React.FC<AdminAuthViewProps> = ({
                         setForgotPasswordOpen(true);
                         setForgotEmail(loginEmail);
                       }}
-                      className="font-sans font-bold text-[11px] uppercase tracking-[0.15em] text-[#27331c] hover:text-[#3d4a31] transition-colors cursor-pointer"
+                      className="font-sans font-bold text-[11px] uppercase tracking-[0.15em] bg-dala-green-dark hover:text-[#3d4a31] transition-colors cursor-pointer"
                     >
                       Forgot?
                     </button>
@@ -984,7 +1019,7 @@ export const AdminAuthView: React.FC<AdminAuthViewProps> = ({
                       value={loginPassword}
                       onChange={(e) => setLoginPassword(e.target.value)}
                       placeholder="••••••••"
-                      className="w-full bg-[#fcf9f8] border border-[#765845]/20 rounded-lg py-3 pl-11 pr-10 text-sm text-[#1b1c1c] placeholder:text-gray-400 focus:outline-none focus:border-[#27331c] focus:ring-1 focus:ring-[#27331c] transition-all"
+                      className="w-full bg-dala-cream border border-[#765845]/20 rounded-lg py-3 pl-11 pr-10 text-sm text-dala-text placeholder:text-gray-400 focus:outline-none focus:border-[#27331c] focus:ring-1 focus:ring-[#27331c] transition-all"
                     />
                     <button
                       type="button"
@@ -1003,11 +1038,11 @@ export const AdminAuthView: React.FC<AdminAuthViewProps> = ({
                     type="checkbox"
                     checked={rememberMe}
                     onChange={(e) => setRememberMe(e.target.checked)}
-                    className="w-4 h-4 text-[#27331c] border-gray-300 rounded focus:ring-[#27331c] bg-[#fcf9f8] cursor-pointer"
+                    className="w-4 h-4 bg-dala-green-dark border-gray-300 rounded focus:ring-[#27331c] bg-dala-cream cursor-pointer"
                   />
                   <label
                     htmlFor="remember"
-                    className="ml-2.5 text-xs text-[#454840] cursor-pointer select-none"
+                    className="ml-2.5 text-xs text-dala-text-light cursor-pointer select-none"
                   >
                     Remember me for 30 days
                   </label>
@@ -1018,7 +1053,7 @@ export const AdminAuthView: React.FC<AdminAuthViewProps> = ({
                   <button
                     type="submit"
                     disabled={isLoading}
-                    className="w-full bg-[#27331c] text-white font-sans font-bold text-xs uppercase tracking-[0.15em] py-4 rounded-lg hover:-translate-y-0.5 hover:shadow-lg transition-all duration-300 flex justify-center items-center gap-2 cursor-pointer disabled:opacity-70"
+                    className="w-full bg-dala-green-dark text-white font-sans font-bold text-xs uppercase tracking-[0.15em] py-4 rounded-lg hover:-translate-y-0.5 hover:shadow-lg transition-all duration-300 flex justify-center items-center gap-2 cursor-pointer disabled:opacity-70"
                   >
                     {isLoading ? 'Signing In...' : 'Sign In'}
                     <ArrowRight size={18} />
@@ -1027,8 +1062,8 @@ export const AdminAuthView: React.FC<AdminAuthViewProps> = ({
               </form>
 
               {/* Bottom Security Badge */}
-              <div className="mt-8 pt-5 border-t border-[#1b1c1c]/10 text-center flex justify-center items-center gap-2 text-[#454840]">
-                <ShieldCheck size={16} className="text-[#27331c]" />
+              <div className="mt-8 pt-5 border-t border-[#1b1c1c]/10 text-center flex justify-center items-center gap-2 text-dala-text-light">
+                <ShieldCheck size={16} className="bg-dala-green-dark" />
                 <span className="font-sans text-[11px] font-bold uppercase tracking-[0.15em] opacity-80">
                   Secure Admin Access
                 </span>
@@ -1036,14 +1071,14 @@ export const AdminAuthView: React.FC<AdminAuthViewProps> = ({
 
               {/* Toggle to Register */}
               <div className="mt-4 text-center">
-                <p className="text-xs text-[#454840]">
+                <p className="text-xs text-dala-text-light">
                   Need a staff account?{' '}
                   <button
                     onClick={() => {
                       setMode('register');
                       setErrorMsg('');
                     }}
-                    className="text-[#765845] font-semibold hover:text-[#27331c] transition-colors underline cursor-pointer"
+                    className="text-[#765845] font-semibold hover:bg-dala-green-dark transition-colors underline cursor-pointer"
                   >
                     Register here
                   </button>
@@ -1055,7 +1090,7 @@ export const AdminAuthView: React.FC<AdminAuthViewProps> = ({
 
         {/* Very minimal copyright footer */}
         <div className="text-center mt-6">
-          <p className="font-sans text-[11px] font-bold uppercase tracking-[0.15em] text-[#454840]/60">
+          <p className="font-sans text-[11px] font-bold uppercase tracking-[0.15em] text-dala-text-light/60">
             © 2026 DalaKitchen Professional. Secure Admin Portal.
           </p>
         </div>
@@ -1065,7 +1100,7 @@ export const AdminAuthView: React.FC<AdminAuthViewProps> = ({
       {forgotPasswordOpen && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-xl max-w-sm w-full p-6 shadow-xl border border-gray-100 animate-in fade-in zoom-in-95">
-            <h3 className="font-serif font-bold text-xl text-[#27331c] mb-2">
+            <h3 className="font-serif font-bold text-xl bg-dala-green-dark mb-2">
               Reset Password
             </h3>
             <p className="text-xs text-gray-600 mb-4">
@@ -1084,11 +1119,11 @@ export const AdminAuthView: React.FC<AdminAuthViewProps> = ({
                   value={forgotEmail}
                   onChange={(e) => setForgotEmail(e.target.value)}
                   placeholder="chef@dalakitchen.com"
-                  className="w-full bg-[#fcf9f8] border border-gray-300 rounded-lg p-3 text-xs outline-none focus:border-[#27331c]"
+                  className="w-full bg-dala-cream border border-gray-300 rounded-lg p-3 text-xs outline-none focus:border-[#27331c]"
                 />
                 <button
                   type="submit"
-                  className="w-full bg-[#27331c] text-white py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider hover:opacity-90 transition-opacity cursor-pointer"
+                  className="w-full bg-dala-green-dark text-white py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider hover:opacity-90 transition-opacity cursor-pointer"
                 >
                   Send Reset Link
                 </button>
