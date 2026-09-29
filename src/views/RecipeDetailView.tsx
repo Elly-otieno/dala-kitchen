@@ -16,6 +16,7 @@ import {
   Heart,
   Play,
   Maximize2,
+  Minimize2,
   RotateCcw,
   Sparkles,
 } from 'lucide-react';
@@ -66,12 +67,16 @@ export const RecipeDetailView: React.FC<RecipeDetailViewProps> = ({
     (recipe as any).videoUrl
   );
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isTheater, setIsTheater] = useState(false);
+  const [isVideoLoading, setIsVideoLoading] = useState(true);
   const [videoThumb, setVideoThumb] = useState<string>(() =>
     videoId ? `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg` : recipe.image
   );
 
   useEffect(() => {
     setIsPlaying(false);
+    setIsTheater(false);
+    setIsVideoLoading(true);
     if (videoId) {
       setVideoThumb(`https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`);
     } else {
@@ -80,6 +85,7 @@ export const RecipeDetailView: React.FC<RecipeDetailViewProps> = ({
   }, [recipe.id, videoId, recipe.image]);
 
   const handlePlayVideo = () => {
+    setIsVideoLoading(true);
     setIsPlaying(true);
   };
 
@@ -116,7 +122,11 @@ export const RecipeDetailView: React.FC<RecipeDetailViewProps> = ({
         viewport={{ once: true }}
         transition={{ duration: 0.4 }}
         id="recipe-video-section"
-        className="my-8 rounded-3xl bg-[#0E2F24] text-white p-7 sm:p-10 md:p-12 overflow-hidden shadow-xl scroll-mt-28 relative group"
+        className={`my-8 rounded-3xl bg-[#0E2F24] text-white overflow-hidden shadow-xl scroll-mt-28 relative group transition-all duration-300 ${
+          isTheater
+            ? 'p-4 sm:p-6 md:p-8 -mx-2 sm:-mx-6 lg:-mx-10 ring-2 ring-emerald-500/30'
+            : 'p-7 sm:p-10 md:p-12'
+        }`}
       >
         {/* Video thumbnail as atmospheric background image */}
         <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none select-none">
@@ -143,23 +153,24 @@ export const RecipeDetailView: React.FC<RecipeDetailViewProps> = ({
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => setIsPlaying(false)}
+                  onClick={() => {
+                    setIsPlaying(false);
+                    setIsTheater(false);
+                  }}
                   className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-white/10 hover:bg-white/20 text-white text-xs font-bold uppercase tracking-wider rounded-full transition-colors cursor-pointer"
                 >
                   <RotateCcw size={12} />
                   Hide Video
                 </button>
-                {onPlayVideo && (
-                  <button
-                    type="button"
-                    onClick={() => onPlayVideo(videoId)}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-white/10 hover:bg-white/20 text-white text-xs font-bold uppercase tracking-wider rounded-full transition-colors cursor-pointer"
-                    title="Open full theater dialog"
-                  >
-                    <Maximize2 size={12} />
-                    Theater
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={() => setIsTheater((prev) => !prev)}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-white/10 hover:bg-white/20 text-white text-xs font-bold uppercase tracking-wider rounded-full transition-colors cursor-pointer"
+                  title={isTheater ? "Exit theater mode" : "In-page theater mode"}
+                >
+                  {isTheater ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
+                  {isTheater ? 'Default' : 'Theater'}
+                </button>
                 {recipe.youtubeUrl && (
                   <a
                     href={recipe.youtubeUrl}
@@ -175,12 +186,22 @@ export const RecipeDetailView: React.FC<RecipeDetailViewProps> = ({
             </div>
 
             <div className="relative w-full aspect-video bg-black rounded-2xl overflow-hidden shadow-2xl border border-white/10">
+              {isVideoLoading && (
+                <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-[#071f16]/95 backdrop-blur-xs text-white">
+                  <div className="w-10 h-10 border-3 border-emerald-500/30 border-t-emerald-400 rounded-full animate-spin mb-3"></div>
+                  <span className="text-xs uppercase font-bold tracking-widest text-emerald-300">
+                    Loading Video Guide...
+                  </span>
+                </div>
+              )}
               <iframe
-                src={`https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&rel=0`}
+                src={`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1&playsinline=1`}
                 title={`${recipe.title} - Master the Technique`}
-                className="w-full h-full border-0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                className="w-full h-full border-0 relative z-10"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                 allowFullScreen
+                loading="eager"
+                onLoad={() => setIsVideoLoading(false)}
               />
             </div>
 

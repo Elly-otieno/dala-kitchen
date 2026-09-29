@@ -187,13 +187,18 @@ export async function fetchRecipesFromSupabase(): Promise<Recipe[] | null> {
         extractYoutubeId(
           item.youtube_video_id,
           item.youtube_url,
+          item.video_id,
+          item.video_url,
+          item.videoId,
           item.youtubeVideoId,
           item.youtubeUrl
         ) || undefined;
 
       const rawUrl =
         (item.youtube_url && String(item.youtube_url).startsWith('http') ? item.youtube_url : undefined) ||
-        (item.youtube_video_id && String(item.youtube_video_id).startsWith('http') ? item.youtube_video_id : undefined);
+        (item.video_url && String(item.video_url).startsWith('http') ? item.video_url : undefined) ||
+        (item.youtube_video_id && String(item.youtube_video_id).startsWith('http') ? item.youtube_video_id : undefined) ||
+        (item.video_id && String(item.video_id).startsWith('http') ? item.video_id : undefined);
 
       const derivedUrl =
         rawUrl || (derivedId ? `https://www.youtube.com/watch?v=${derivedId}` : undefined);
@@ -317,19 +322,42 @@ export async function fetchYouTubeVideosFromSupabase(): Promise<YouTubeVideo[] |
       }
       return YOUTUBE_VIDEOS;
     }
-    return data.map((item) => ({
-      id: item.id,
-      title: item.title,
-      duration: item.duration || '10:00',
-      thumbnail: item.thumbnail,
-      videoId: item.video_id || item.id,
-      publishedAt: item.published_at || 'Recently',
-      description: item.description || undefined,
-      series: item.series || undefined,
-      featured: item.featured || false,
-      archived: item.archived || false,
-      draft: item.draft || false,
-    }));
+    return data.map((item) => {
+      const rawVideoId =
+        item.video_id ||
+        item.youtube_video_id ||
+        item.youtubeVideoId ||
+        item.videoId ||
+        item.youtube_url ||
+        item.video_url ||
+        item.url;
+
+      const cleanVideoId =
+        extractYoutubeId(rawVideoId) ||
+        (rawVideoId && typeof rawVideoId === 'string' && rawVideoId.trim().length === 11
+          ? rawVideoId.trim()
+          : item.id);
+
+      // Dynamically point to updated thumbnail if thumbnail was a YouTube thumb or missing
+      let cleanThumbnail = item.thumbnail;
+      if (!cleanThumbnail || cleanThumbnail.includes('img.youtube.com/vi/')) {
+        cleanThumbnail = `https://img.youtube.com/vi/${cleanVideoId}/hqdefault.jpg`;
+      }
+
+      return {
+        id: item.id,
+        title: item.title,
+        duration: item.duration || '10:00',
+        thumbnail: cleanThumbnail,
+        videoId: cleanVideoId,
+        publishedAt: item.published_at || 'Recently',
+        description: item.description || undefined,
+        series: item.series || undefined,
+        featured: item.featured || false,
+        archived: item.archived || false,
+        draft: item.draft || false,
+      };
+    });
   } catch {
     return null;
   }
@@ -490,8 +518,10 @@ export async function deleteAdminUserFromSupabase(id: string) {
   }
 }
 
+let isContactMessagesTableMissing = false;
+
 export async function syncContactMessageToSupabase(message: ContactMessage) {
-  if (!isSupabaseConfigured || !supabase) return;
+  if (!isSupabaseConfigured || !supabase || isContactMessagesTableMissing) return;
   try {
     const { error } = await supabase.from('contact_messages').upsert(
       {
@@ -506,18 +536,42 @@ export async function syncContactMessageToSupabase(message: ContactMessage) {
       { onConflict: 'id' }
     );
     if (error) {
+      if (
+        error.code === 'PGRST204' ||
+        error.code === 'PGRST205' ||
+        error.code === '42P01' ||
+        error.message?.includes('contact_messages') ||
+        error.message?.includes('relation') ||
+        error.message?.includes('not found')
+      ) {
+        isContactMessagesTableMissing = true;
+        return;
+      }
       console.warn('Supabase contact message sync warning:', error.message);
     }
-  } catch (err) {
-    console.warn('Supabase contact message sync error:', err);
+  } catch {
+    isContactMessagesTableMissing = true;
   }
 }
 
 export async function fetchContactMessagesFromSupabase(): Promise<ContactMessage[] | null> {
-  if (!isSupabaseConfigured || !supabase) return null;
+  if (!isSupabaseConfigured || !supabase || isContactMessagesTableMissing) return null;
   try {
     const { data, error } = await supabase.from('contact_messages').select('*').order('created_at', { ascending: false });
-    if (error || !data) return null;
+    if (error) {
+      if (
+        error.code === 'PGRST204' ||
+        error.code === 'PGRST205' ||
+        error.code === '42P01' ||
+        error.message?.includes('contact_messages') ||
+        error.message?.includes('relation') ||
+        error.message?.includes('not found')
+      ) {
+        isContactMessagesTableMissing = true;
+      }
+      return null;
+    }
+    if (!data) return null;
     return data.map((item: any) => ({
       id: item.id,
       name: item.name,
@@ -528,6 +582,7 @@ export async function fetchContactMessagesFromSupabase(): Promise<ContactMessage
       read: !!item.read,
     }));
   } catch {
+    isContactMessagesTableMissing = true;
     return null;
   }
 }

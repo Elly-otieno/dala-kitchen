@@ -10,7 +10,6 @@ import { Footer } from './components/Footer';
 
 import { SubscribeModal } from './components/SubscribeModal';
 import { SavedRecipesModal } from './components/SavedRecipesModal';
-import { YouTubeModal } from './components/YouTubeModal';
 
 import { RecipesCatalogView } from './views/RecipesCatalogView';
 import { RecipeDetailView } from './views/RecipeDetailView';
@@ -42,7 +41,7 @@ import {
   clearAnalyticsFromSupabase,
 } from './lib/supabaseSync';
 import { supabase } from './lib/supabase';
-import { normalizeRecipe } from './lib/youtube';
+import { normalizeRecipe, extractYoutubeId } from './lib/youtube';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<string>('home');
@@ -270,8 +269,6 @@ export default function App() {
   // Modals state
   const [subscribeModalOpen, setSubscribeModalOpen] = useState(false);
   const [savedModalOpen, setSavedModalOpen] = useState(false);
-  const [youtubeModalOpen, setYoutubeModalOpen] = useState(false);
-  const [activeYoutubeVideoId, setActiveYoutubeVideoId] = useState<string | null>(null);
   
   // Legal Policies Modal
   const [legalModalOpen, setLegalModalOpen] = useState(false);
@@ -310,10 +307,11 @@ export default function App() {
     );
   };
 
-  const handleOpenYoutubeVideo = (videoId: string) => {
-    setActiveYoutubeVideoId(videoId);
-    setYoutubeModalOpen(true);
-    recordAnalytics('video_view', videoId, `YouTube Guide: ${videoId}`, `video/${videoId}`);
+  const handleOpenYoutubeVideo = (rawVideoId: string) => {
+    const cleanId = extractYoutubeId(rawVideoId) || (rawVideoId ? rawVideoId.trim() : '');
+    setActiveTab('youtube');
+    recordAnalytics('video_view', cleanId, `YouTube Guide: ${cleanId}`, `video/${cleanId}`);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleOpenRecipe = (recipe: Recipe) => {
@@ -359,6 +357,23 @@ export default function App() {
       }
     });
 
+    // Initial data load on mount
+    fetchRecipesFromSupabase().then((remoteRecipes) => {
+      if (remoteRecipes && remoteRecipes.length > 0) setRecipes(remoteRecipes);
+    });
+
+    fetchYouTubeVideosFromSupabase().then((remoteVideos) => {
+      if (remoteVideos && remoteVideos.length > 0) setVideos(remoteVideos);
+    });
+
+    fetchArticlesFromSupabase().then((remoteArticles) => {
+      if (remoteArticles && remoteArticles.length > 0) setArticles(remoteArticles);
+    });
+
+    fetchSiteSettingsFromSupabase().then((remoteSettings) => {
+      if (remoteSettings) setSiteSettings(remoteSettings);
+    });
+
     fetchNewslettersFromSupabase().then((remoteNewsletters) => {
       if (remoteNewsletters && remoteNewsletters.length > 0) {
         setNewsletters((prev) => {
@@ -370,86 +385,70 @@ export default function App() {
       }
     });
 
-    // Recipe Synchronization with real-time updates and window focus reload
-    const reloadRecipes = () => {
-      fetchRecipesFromSupabase().then((remoteRecipes) => {
-        if (remoteRecipes && remoteRecipes.length > 0) {
-          setRecipes(remoteRecipes);
-        }
-      });
-    };
+    fetchAdminUsersFromSupabase().then((remoteAdminUsers) => {
+      if (remoteAdminUsers && remoteAdminUsers.length > 0) setAdminUsers(remoteAdminUsers);
+    });
 
-    reloadRecipes();
+    fetchContactMessagesFromSupabase().then((remoteContactMsgs) => {
+      if (remoteContactMsgs && remoteContactMsgs.length > 0) setContactMessages(remoteContactMsgs);
+    });
 
-    // Re-fetch immediately when user returns from Supabase dashboard or another tab
+    fetchAnalyticsFromSupabase().then((remoteAnalytics) => {
+      if (remoteAnalytics && remoteAnalytics.length > 0) setAnalyticsEvents(remoteAnalytics);
+    });
+
+    // Re-fetch media when user returns to this tab from Supabase dashboard
     const handleWindowFocus = () => {
-      reloadRecipes();
+      fetchRecipesFromSupabase().then((remoteRecipes) => {
+        if (remoteRecipes && remoteRecipes.length > 0) setRecipes(remoteRecipes);
+      });
+      fetchYouTubeVideosFromSupabase().then((remoteVideos) => {
+        if (remoteVideos && remoteVideos.length > 0) setVideos(remoteVideos);
+      });
     };
     window.addEventListener('focus', handleWindowFocus);
 
-    // Supabase Real-time updates listener on recipes table
-    let recipeChannel: any = null;
+    // Supabase Real-time updates listener across tables with granular updates
+    let realtimeChannel: any = null;
     if (supabase) {
       try {
-        recipeChannel = supabase
-          .channel('recipes-realtime-listener')
-          .on(
-            'postgres_changes',
-            { event: '*', schema: 'public', table: 'recipes' },
-            () => {
-              reloadRecipes();
-            }
-          )
+        realtimeChannel = supabase
+          .channel('db-live-sync')
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'recipes' }, () => {
+            fetchRecipesFromSupabase().then((res) => { if (res) setRecipes(res); });
+          })
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'youtube_videos' }, () => {
+            fetchYouTubeVideosFromSupabase().then((res) => { if (res) setVideos(res); });
+          })
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'articles' }, () => {
+            fetchArticlesFromSupabase().then((res) => { if (res) setArticles(res); });
+          })
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'site_settings' }, () => {
+            fetchSiteSettingsFromSupabase().then((res) => { if (res) setSiteSettings(res); });
+          })
           .subscribe();
       } catch (err) {
         console.warn('Realtime subscription error:', err);
       }
     }
 
-    // Polling fallback every 8 seconds to guarantee prompt reflection of database edits
-    const pollInterval = setInterval(reloadRecipes, 8000);
-
-    fetchArticlesFromSupabase().then((remoteArticles) => {
-      if (remoteArticles && remoteArticles.length > 0) {
-        setArticles(remoteArticles);
+    // Gentle 20-second background poll only for media and only when tab is visible
+    const pollInterval = setInterval(() => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+        fetchRecipesFromSupabase().then((remoteRecipes) => {
+          if (remoteRecipes && remoteRecipes.length > 0) setRecipes(remoteRecipes);
+        });
+        fetchYouTubeVideosFromSupabase().then((remoteVideos) => {
+          if (remoteVideos && remoteVideos.length > 0) setVideos(remoteVideos);
+        });
       }
-    });
-
-    fetchYouTubeVideosFromSupabase().then((remoteVideos) => {
-      if (remoteVideos && remoteVideos.length > 0) {
-        setVideos(remoteVideos);
-      }
-    });
-
-    fetchAdminUsersFromSupabase().then((remoteAdminUsers) => {
-      if (remoteAdminUsers && remoteAdminUsers.length > 0) {
-        setAdminUsers(remoteAdminUsers);
-      }
-    });
-
-    fetchSiteSettingsFromSupabase().then((remoteSettings) => {
-      if (remoteSettings) {
-        setSiteSettings(remoteSettings);
-      }
-    });
-
-    fetchContactMessagesFromSupabase().then((remoteContactMsgs) => {
-      if (remoteContactMsgs && remoteContactMsgs.length > 0) {
-        setContactMessages(remoteContactMsgs);
-      }
-    });
-
-    fetchAnalyticsFromSupabase().then((remoteAnalytics) => {
-      if (remoteAnalytics && remoteAnalytics.length > 0) {
-        setAnalyticsEvents(remoteAnalytics);
-      }
-    });
+    }, 20000);
 
     return () => {
       window.removeEventListener('focus', handleWindowFocus);
       clearInterval(pollInterval);
-      if (recipeChannel && supabase) {
-        supabase.removeChannel(recipeChannel);
+      if (realtimeChannel && supabase) {
+        supabase.removeChannel(realtimeChannel);
       }
     };
   }, []);
@@ -714,12 +713,6 @@ export default function App() {
         isOpen={subscribeModalOpen}
         onClose={() => setSubscribeModalOpen(false)}
         onSubscribe={handleAddSubscriber}
-      />
-
-      <YouTubeModal
-        videoId={activeYoutubeVideoId}
-        isOpen={youtubeModalOpen}
-        onClose={() => setYoutubeModalOpen(false)}
       />
 
       <LegalPoliciesModal
